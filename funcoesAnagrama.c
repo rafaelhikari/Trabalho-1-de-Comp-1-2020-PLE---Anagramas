@@ -19,11 +19,17 @@ int puxa_palavra(char *palavra, FILE *dicionario);
 
 int randomiza_palavra_nova(char *palavra, int i, int *linha_atual, FILE *dicionario);
 
+void embaralha_palavra(char *palavra, char *palavra_embaralhada);
+
 int validar_resposta(char *palavra, char resposta[TAM_MAX], int linha_dicionario, FILE *anagramas);
+
+void cache_linha(FILE *anagramas, int linha);
+
+void imprime_x();
 
 int main(){
     char *palavra = malloc(TAM_MAX * sizeof(char));
-    char *db_anagramas = malloc(CARAC_MAX*sizeof(char));
+    char *palavra_embaralhada = malloc(TAM_MAX*sizeof(char));
     char resposta[TAM_MAX];
     int i, status_resposta, linha[DIC_MAX], *ptrLinha;
     bool vitoria;
@@ -58,6 +64,8 @@ int main(){
 
         randomiza_palavra_nova(palavra, i, ptrLinha, ptrFile);
 
+        embaralha_palavra(palavra, palavra_embaralhada);
+
         fclose(ptrFile);
 
         if((ptrFile = fopen("anagramas.txt", "r")) == NULL){
@@ -65,13 +73,14 @@ int main(){
             exit(1);
         }
 
-        puxa_linha(db_anagramas, linha[i], ptrFile);
+        cache_linha(ptrFile, linha[i]);
 
         while(1){
 
             if(vitoria == true)printf("Entre 'p' para jogar com a proxima palavra.\n");
             printf("Pontos: %d\n", gPontuacao);
-            printf("%s\n", palavra);
+            printf("%s\n", palavra_embaralhada);
+            imprime_x();
 
             printf("Insira uma resposta: ");
             scanf("%s", &resposta);
@@ -106,9 +115,15 @@ int main(){
     return 0;
 }
 
-void puxa_linha(char *db_anagramas, int linha, FILE *anagramas){
+void cache_linha(FILE *anagramas, int linha){
     int i;
     char c;
+    FILE *cache;
+
+    if((cache = fopen("cache.txt", "w")) == NULL){
+            printf("Nao foi possivel criar o cache.\n");
+            exit(1);
+        }
 
     for(i=0; i<linha; i++){
         c = fgetc(anagramas);
@@ -118,10 +133,30 @@ void puxa_linha(char *db_anagramas, int linha, FILE *anagramas){
     }
 
     c = fgetc(anagramas);
-    for(i = 0; c != '\n'; i++){
-        db_anagramas[i] = c;
+    while(c != '\n'){
+        fputc(c, cache);
         c = fgetc(anagramas);
     }
+
+    fclose(cache);
+}
+
+void imprime_x(){
+    FILE *cache;
+    char c;
+
+    if((cache = fopen("cache.txt", "r")) == NULL){
+            printf("Nao foi possivel criar o cache.\n");
+            exit(1);
+    }
+    c = fgetc(cache);
+    while(c != EOF){
+        if(c != ' ') putchar('X');
+        else putchar(' ');
+        c = fgetc(cache);
+    }
+    putchar('\n');
+    fclose(cache);
 }
 
 int puxa_palavra(char *palavra, FILE *dicionario){
@@ -158,6 +193,21 @@ int randomiza_palavra_nova(char *palavra, int i, int *linha, FILE *dicionario){
                 }
             }
         }
+    }
+}
+
+void embaralha_palavra(char *palavra, char *palavra_embaralhada){
+    int i, j, tamanho;
+    char temp[7];
+
+    strcpy(palavra_embaralhada, palavra);
+    tamanho = strlen(palavra);
+
+    for(i = 0; i < tamanho; i++){
+        j = (rand()%tamanho);
+        temp[i] = palavra_embaralhada[i];
+        palavra_embaralhada[i] = palavra_embaralhada[j];
+        palavra_embaralhada[j] = temp[i];
     }
 }
 
