@@ -20,7 +20,7 @@ int main(){
     char *palavra = malloc(TAM_MAX * sizeof(char));
     char resposta[TAM_MAX];
     int i, status_resposta, linha[DIC_MAX];
-    bool vitoria = false;
+    bool vitoria;
     FILE *ptrFile;
 
     #ifdef _WIN32
@@ -37,6 +37,9 @@ int main(){
     #endif
 
     for(i=0; i<DIC_MAX; i++){
+
+        vitoria = false;
+
         if((ptrFile = fopen("dicionario.txt", "r")) == NULL){
             printf("Nao foi possivel abrir o dicionario.\n");
             exit(1);
@@ -55,14 +58,14 @@ int main(){
 
         while(1){
 
-            if(vitoria == true)printf("Entre 'P' para jogar com a proxima palavra.\n");
+            if(vitoria == true)printf("Entre 'p' para jogar com a proxima palavra.\n");
             printf("Pontos: %d\n", gPontuacao);
             printf("%s\n", palavra);
 
             printf("Insira uma resposta: ");
             scanf("%s", &resposta);
 
-            if(resposta == 'P') break;
+            if(strcmp(resposta, "p") == 0) break;
 
             status_resposta = validar_resposta(palavra, resposta, linha[i], ptrFile);
 
