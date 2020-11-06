@@ -10,6 +10,8 @@
 int gPontuacao;
 int sistema;
 
+void tempo(int segundos);
+
 int puxa_palavra(char *palavra, FILE *dicionario);
 
 int randomiza_palavra_nova(char *palavra, int i, int *linha_atual, FILE *dicionario);
@@ -19,7 +21,7 @@ int validar_resposta(char *palavra, char resposta[TAM_MAX], int linha_dicionario
 int main(){
     char *palavra = malloc(TAM_MAX * sizeof(char));
     char resposta[TAM_MAX];
-    int i, status_resposta, linha[DIC_MAX];
+    int i, status_resposta, linha[DIC_MAX], *ptrLinha;
     bool vitoria;
     FILE *ptrFile;
 
@@ -33,8 +35,11 @@ int main(){
         printf("Linux\n");
         sistema = 1;
     #else
-        printf("Unidentified OS\n");
+        printf("Nao foi possivel identificar o sistema operacional\n");
+        sistema = 3;
     #endif
+
+    ptrLinha = &linha[0];
 
     for(i=0; i<DIC_MAX; i++){
 
@@ -47,7 +52,7 @@ int main(){
 
         srand(time(NULL));
 
-        randomiza_palavra_nova(palavra, i, &linha, ptrFile);
+        randomiza_palavra_nova(palavra, i, ptrLinha, ptrFile);
 
         fclose(ptrFile);
 
@@ -65,7 +70,11 @@ int main(){
             printf("Insira uma resposta: ");
             scanf("%s", &resposta);
 
-            if(strcmp(resposta, "p") == 0) break;
+            if(strcmp(resposta, "p") == 0){
+                if(sistema == 0)system("cls");
+                else if(sistema == 1)system("clear");
+                break;
+            }
 
             status_resposta = validar_resposta(palavra, resposta, linha[i], ptrFile);
 
@@ -81,6 +90,9 @@ int main(){
                 printf("Parabens, acertou a principal!\n");
                 vitoria = true;
             }
+            tempo(1);
+            if(sistema == 0)system("cls");
+            else if(sistema == 1)system("clear");
         }
 
         fclose(ptrFile);
@@ -139,11 +151,22 @@ int validar_resposta(char *palavra, char resposta[TAM_MAX], int linha_dicionario
     }
 
     c = fgetc(anagramas);
+
     while(c != '\n'){
+        fseek(anagramas, -1L, SEEK_CUR);
         fscanf(anagramas, "%s", &anagrama_atual);
         if(strcmp(palavra, resposta) == 0) return 2;
         if(strcmp(anagrama_atual, resposta) == 0) return 0;
         c = fgetc(anagramas);
     }
     return 1;
+}
+
+void tempo(int segundos){
+    int ms = 1000 * segundos;
+
+    clock_t inicio = clock();
+
+    while (clock() < inicio + ms)
+        ;
 }
