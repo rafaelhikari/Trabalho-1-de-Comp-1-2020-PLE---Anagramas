@@ -6,11 +6,14 @@
 
 #define TAM_MAX 7
 #define DIC_MAX 47
+#define CARAC_MAX 456
 
 int gPontuacao;
 int sistema;
 
 void tempo(int segundos);
+
+void puxa_linha(char *db_anagramas, int linha, FILE *anagramas);
 
 int puxa_palavra(char *palavra, FILE *dicionario);
 
@@ -20,6 +23,7 @@ int validar_resposta(char *palavra, char resposta[TAM_MAX], int linha_dicionario
 
 int main(){
     char *palavra = malloc(TAM_MAX * sizeof(char));
+    char *db_anagramas = malloc(CARAC_MAX*sizeof(char));
     char resposta[TAM_MAX];
     int i, status_resposta, linha[DIC_MAX], *ptrLinha;
     bool vitoria;
@@ -61,6 +65,8 @@ int main(){
             exit(1);
         }
 
+        puxa_linha(db_anagramas, linha[i], ptrFile);
+
         while(1){
 
             if(vitoria == true)printf("Entre 'p' para jogar com a proxima palavra.\n");
@@ -98,6 +104,24 @@ int main(){
         fclose(ptrFile);
     }
     return 0;
+}
+
+void puxa_linha(char *db_anagramas, int linha, FILE *anagramas){
+    int i;
+    char c;
+
+    for(i=0; i<linha; i++){
+        c = fgetc(anagramas);
+        while(c != '\n'){
+            c = fgetc(anagramas);
+        }
+    }
+
+    c = fgetc(anagramas);
+    for(i = 0; c != '\n'; i++){
+        db_anagramas[i] = c;
+        c = fgetc(anagramas);
+    }
 }
 
 int puxa_palavra(char *palavra, FILE *dicionario){
