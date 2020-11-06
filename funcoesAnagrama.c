@@ -6,12 +6,14 @@
 
 #define TAM_MAX 7
 #define DIC_MAX 47
-#define CARAC_MAX 456
 
 int gPontuacao;
+
 int sistema;
 
 void tempo(int segundos);
+
+void alocar(char **db_anagramas, int linha, FILE *anagramas);
 
 void puxa_linha(char *db_anagramas, int linha, FILE *anagramas);
 
@@ -19,11 +21,14 @@ int puxa_palavra(char *palavra, FILE *dicionario);
 
 int randomiza_palavra_nova(char *palavra, int i, int *linha_atual, FILE *dicionario);
 
-int validar_resposta(char *palavra, char resposta[TAM_MAX], int linha_dicionario, FILE *anagramas);
+void embaralha_palavra(char *palavra, char *palavra_embaralhada);
+
+int validar_resposta(char *palavra, char resposta[TAM_MAX], char *db_anagramas);
 
 int main(){
     char *palavra = malloc(TAM_MAX * sizeof(char));
-    char *db_anagramas = malloc(CARAC_MAX*sizeof(char));
+    char *palavra_embaralhada = malloc(TAM_MAX*sizeof(char));
+    char *db_anagramas;
     char resposta[TAM_MAX];
     int i, status_resposta, linha[DIC_MAX], *ptrLinha;
     bool vitoria;
@@ -35,7 +40,7 @@ int main(){
     #elif WIN64
         printf("Windows\n");
         sistema = 0;
-    #elif linux__
+    #elif __linux__
         printf("Linux\n");
         sistema = 1;
     #else
@@ -58,6 +63,8 @@ int main(){
 
         randomiza_palavra_nova(palavra, i, ptrLinha, ptrFile);
 
+        embaralha_palavra(palavra, palavra_embaralhada);
+
         fclose(ptrFile);
 
         if((ptrFile = fopen("anagramas.txt", "r")) == NULL){
@@ -65,13 +72,14 @@ int main(){
             exit(1);
         }
 
+        alocar(&db_anagramas, linha[i], ptrFile);
         puxa_linha(db_anagramas, linha[i], ptrFile);
 
         while(1){
 
             if(vitoria == true)printf("Entre 'p' para jogar com a proxima palavra.\n");
             printf("Pontos: %d\n", gPontuacao);
-            printf("%s\n", palavra);
+            printf("%s\n", palavra_embaralhada);
 
             printf("Insira uma resposta: ");
             scanf("%s", &resposta);
@@ -82,7 +90,7 @@ int main(){
                 break;
             }
 
-            status_resposta = validar_resposta(palavra, resposta, linha[i], ptrFile);
+            status_resposta = validar_resposta(palavra, resposta, db_anagramas);
 
             if(status_resposta == 0){
                 gPontuacao += strlen(resposta);
@@ -96,6 +104,7 @@ int main(){
                 printf("Parabens, acertou a principal!\n");
                 vitoria = true;
             }
+
             tempo(1);
             if(sistema == 0)system("cls");
             else if(sistema == 1)system("clear");
@@ -106,9 +115,29 @@ int main(){
     return 0;
 }
 
-void puxa_linha(char *db_anagramas, int linha, FILE *anagramas){
+void alocar(char **db_anagramas, int linha, FILE *anagramas){
     int i;
     char c;
+
+    for(i=0; i<linha; i++){
+        c = fgetc(anagramas);
+        while(c != '\n'){
+            c = fgetc(anagramas);
+        }
+    }
+
+    for(i=0; c != '\n'; i++){
+        c = fgetc(anagramas);
+    }
+
+    *db_anagramas = malloc((i+1)*sizeof(char));
+}
+
+void puxa_linha(char *db_anagramas, int linha, FILE *anagramas){
+    int i, tamanho_linha;
+    char c;
+
+    rewind(anagramas);
 
     for(i=0; i<linha; i++){
         c = fgetc(anagramas);
@@ -161,28 +190,26 @@ int randomiza_palavra_nova(char *palavra, int i, int *linha, FILE *dicionario){
     }
 }
 
-int validar_resposta(char *palavra, char resposta[TAM_MAX], int linha_dicionario, FILE *anagramas){
-    char anagrama_atual[TAM_MAX], c;
-    int i;
+void embaralha_palavra(char *palavra, char *palavra_embaralhada){
+    int i, j, tamanho;
+    char temp[7];
 
-    rewind(anagramas);
+    strcpy(palavra_embaralhada, palavra);
+    tamanho = strlen(palavra);
 
-    for(i=0; i<linha_dicionario; i++){
-        c = fgetc(anagramas);
-        while(c != '\n'){
-            c = fgetc(anagramas);
-        }
+    for(i = 0; i < tamanho; i++){
+        j = (rand()%tamanho);
+        temp[i] = palavra_embaralhada[i];
+        palavra_embaralhada[i] = palavra_embaralhada[j];
+        palavra_embaralhada[j] = temp[i];
     }
+}
 
-    c = fgetc(anagramas);
+int validar_resposta(char *palavra, char resposta[TAM_MAX], char *db_anagramas){
 
-    while(c != '\n'){
-        fseek(anagramas, -1L, SEEK_CUR);
-        fscanf(anagramas, "%s", &anagrama_atual);
-        if(strcmp(palavra, resposta) == 0) return 2;
-        if(strcmp(anagrama_atual, resposta) == 0) return 0;
-        c = fgetc(anagramas);
-    }
+    if(strcmp(palavra, resposta) == 0) return 2;
+    if((strstr(db_anagramas, resposta)) != NULL) return 0;
+
     return 1;
 }
 
