@@ -5,49 +5,50 @@
 #include <stdbool.h>
 
 #define TAM_MAX 7
-#define DIC_MAX 47
-#define CARAC_MAX 456
+#define DIC_MAX 46
+#define LINHA_MAX 457
+
+#ifdef _WIN32
+        #define CLS "cls"
+    #elif WIN64
+        #define CLS "cls"
+    #elif __linux__
+        #define CLS "clear"
+    #else
+        #define CLS "clear"
+    #endif
 
 int gPontuacao;
 int sistema;
 
-void tempo(int segundos);
+void cache_linha(int linha);
 
-void puxa_linha(char *db_anagramas, int linha, FILE *anagramas);
+void cria_lista_x(char *palavra);
+
+void imprime_x();
 
 int puxa_palavra(char *palavra, FILE *dicionario);
 
-int randomiza_palavra_nova(char *palavra, int i, int *linha_atual, FILE *dicionario);
+int randomiza_palavra_nova(char *palavra, int i, int *linha_atual);
 
 void embaralha_palavra(char *palavra, char *palavra_embaralhada);
 
-int validar_resposta(char *palavra, char resposta[TAM_MAX], int linha_dicionario, FILE *anagramas);
+int validar_resposta(char *palavra, char resposta[TAM_MAX], int linha_dicionario);
 
-void cache_linha(FILE *anagramas, int linha);
+void removeTodos(char *linha, const char *para_remover);
 
-void imprime_x();
+void revela_resposta(char resposta[TAM_MAX], int posicao, char *palavra);
+
+int contador();
+
+void tempo(int segundos);
 
 int main(){
     char *palavra = malloc(TAM_MAX * sizeof(char));
     char *palavra_embaralhada = malloc(TAM_MAX*sizeof(char));
     char resposta[TAM_MAX];
-    int i, status_resposta, linha[DIC_MAX], *ptrLinha;
+    int i, status_resposta, anagramas_restantes, linha[DIC_MAX], *ptrLinha;
     bool vitoria;
-    FILE *ptrFile;
-
-    #ifdef _WIN32
-        printf("Windows\n");
-        sistema = 0;
-    #elif WIN64
-        printf("Windows\n");
-        sistema = 0;
-    #elif linux__
-        printf("Linux\n");
-        sistema = 1;
-    #else
-        printf("Nao foi possivel identificar o sistema operacional\n");
-        sistema = 3;
-    #endif
 
     ptrLinha = &linha[0];
 
@@ -55,70 +56,62 @@ int main(){
 
         vitoria = false;
 
-        if((ptrFile = fopen("dicionario.txt", "r")) == NULL){
-            printf("Nao foi possivel abrir o dicionario.\n");
-            exit(1);
-        }
-
         srand(time(NULL));
 
-        randomiza_palavra_nova(palavra, i, ptrLinha, ptrFile);
-
+        randomiza_palavra_nova(palavra, i, ptrLinha);
         embaralha_palavra(palavra, palavra_embaralhada);
-
-        fclose(ptrFile);
-
-        if((ptrFile = fopen("anagramas.txt", "r")) == NULL){
-            printf("Nao foi possivel abrir os anagramas.\n");
-            exit(1);
-        }
-
-        cache_linha(ptrFile, linha[i]);
+        cache_linha(linha[i]);
+        cria_lista_x(palavra);
 
         while(1){
 
-            if(vitoria == true)printf("Entre 'p' para jogar com a proxima palavra.\n");
+            anagramas_restantes = contador();
+
             printf("Pontos: %d\n", gPontuacao);
             printf("%s\n", palavra_embaralhada);
             imprime_x();
+            if(vitoria == true)printf("Entre 'p' para jogar com a proxima palavra.\n");
 
             printf("Insira uma resposta: ");
             scanf("%s", &resposta);
 
-            if(strcmp(resposta, "p") == 0){
-                if(sistema == 0)system("cls");
-                else if(sistema == 1)system("clear");
+            if(vitoria == true && strcmp(resposta, "p") == 0){
+                system(CLS);
+                system(CLS);
                 break;
             }
 
-            status_resposta = validar_resposta(palavra, resposta, linha[i], ptrFile);
+            status_resposta = validar_resposta(palavra, resposta, linha[i]);
 
             if(status_resposta == 0){
-                gPontuacao += strlen(resposta);
-                printf("Acertou!\n");
-            }
-            else if(status_resposta == 1){
-                printf("Errou!\n");
-            }
-            else if(status_resposta == 2){
                 gPontuacao += 10;
                 printf("Parabens, acertou a principal!\n");
                 vitoria = true;
             }
+            else if(status_resposta == 1){
+                gPontuacao += strlen(resposta);
+                printf("Acertou!\n");
+            }
+            else if(status_resposta == 2){
+                printf("Errou!\n");
+            }
             tempo(1);
-            if(sistema == 0)system("cls");
-            else if(sistema == 1)system("clear");
+            system(CLS);
+            system(CLS);
         }
-
-        fclose(ptrFile);
     }
     return 0;
 }
 
-void cache_linha(FILE *anagramas, int linha){
+void cache_linha(int linha){
     int i;
     char c;
-    FILE *cache;
+    FILE *cache, *anagramas;
+
+    if((anagramas = fopen("anagramas.txt", "r")) == NULL){
+            printf("Nao foi possivel abrir os anagramas.\n");
+            exit(1);
+        }
 
     if((cache = fopen("cache.txt", "w")) == NULL){
             printf("Nao foi possivel criar o cache.\n");
@@ -138,25 +131,52 @@ void cache_linha(FILE *anagramas, int linha){
         c = fgetc(anagramas);
     }
 
+    fclose(anagramas);
     fclose(cache);
 }
 
-void imprime_x(){
-    FILE *cache;
+void cria_lista_x(char *palavra){
+    FILE *cache, *lista_x;
+    int i;
     char c;
 
     if((cache = fopen("cache.txt", "r")) == NULL){
             printf("Nao foi possivel criar o cache.\n");
             exit(1);
     }
+
+    if((lista_x = fopen("lista_x.txt", "w")) == NULL){
+            printf("Nao foi possivel criar o lista_x.\n");
+            exit(1);
+    }
+
+    for(i=0; i<strlen(palavra); i++) fputc('X', lista_x);
+    fputc(' ', lista_x);
+
     c = fgetc(cache);
     while(c != EOF){
-        if(c != ' ') putchar('X');
-        else putchar(' ');
+        if(c != ' ') fputc('X', lista_x);
+        else fputc(' ', lista_x);
         c = fgetc(cache);
     }
-    putchar('\n');
     fclose(cache);
+    fclose(lista_x);
+}
+
+void imprime_x(){
+    int tamanho_buffer = LINHA_MAX;
+    char *buffer = malloc(tamanho_buffer*sizeof(char));
+    FILE *lista_x;
+
+    if((lista_x = fopen("lista_x.txt", "r")) == NULL){
+            printf("Nao foi possivel abrir o lista_x.\n");
+            exit(1);
+    }
+
+    getline(&buffer, &tamanho_buffer, lista_x);
+    printf("%s\n", buffer);
+
+    fclose(lista_x);
 }
 
 int puxa_palavra(char *palavra, FILE *dicionario){
@@ -177,8 +197,14 @@ int puxa_palavra(char *palavra, FILE *dicionario){
     return r;
 }
 
-int randomiza_palavra_nova(char *palavra, int i, int *linha, FILE *dicionario){
+int randomiza_palavra_nova(char *palavra, int i, int *linha){
     int j, verdadeiro = 1;
+    FILE *dicionario;
+
+    if((dicionario = fopen("dicionario.txt", "r")) == NULL){
+            printf("Nao foi possivel abrir o dicionario.\n");
+            exit(1);
+        }
 
     if(i == 0) linha[i] = puxa_palavra(palavra, dicionario);
     else{
@@ -194,6 +220,7 @@ int randomiza_palavra_nova(char *palavra, int i, int *linha, FILE *dicionario){
             }
         }
     }
+    fclose(dicionario);
 }
 
 void embaralha_palavra(char *palavra, char *palavra_embaralhada){
@@ -211,29 +238,176 @@ void embaralha_palavra(char *palavra, char *palavra_embaralhada){
     }
 }
 
-int validar_resposta(char *palavra, char resposta[TAM_MAX], int linha_dicionario, FILE *anagramas){
+int validar_resposta(char *palavra, char resposta[TAM_MAX], int linha_dicionario){
+    int i, status;
     char anagrama_atual[TAM_MAX], c;
-    int i;
+    char *alvo = malloc(TAM_MAX*sizeof(char));
+    char *temp_palavra = malloc(TAM_MAX*sizeof(char));
+    FILE *cache, *temp;
 
-    rewind(anagramas);
+    if((cache = fopen("cache.txt", "r")) == NULL){
+            printf("Nao foi possivel abrir o cache.\n");
+            exit(1);
+    }
 
-    for(i=0; i<linha_dicionario; i++){
-        c = fgetc(anagramas);
-        while(c != '\n'){
-            c = fgetc(anagramas);
+    if((temp = fopen("apaga_acerto.tmp", "w")) == NULL){
+            printf("Nao foi possivel criar o arquivo temporario 'apaga_acerto'.\n");
+            exit(1);
+    }
+
+    rewind(cache);
+
+    i = 0;
+    status = 2;
+
+    if(strcmp(palavra, resposta) == 0){
+        strcpy(temp_palavra, palavra);
+        palavra[0] = '\0';
+        palavra[1] = '\0';
+
+        status = 0;
+    }
+    else{
+        for(i=1; c != EOF; i++){
+            c = fgetc(cache);
+            if(c == ' '){
+                fputc(' ', temp);
+                continue;
+            }
+            else {
+                fseek(cache, -1L, SEEK_CUR);
+                fscanf(cache, "%s", &anagrama_atual);
+                if(strcmp(anagrama_atual, resposta) == 0){
+
+                    c = fgetc(cache);
+                    while(c != EOF){
+                        fputc(c, temp);
+                        c = fgetc(cache);
+                    }
+
+                    fclose(cache);
+                    fclose(temp);
+
+                    remove("cache.txt");
+                    rename("apaga_acerto.tmp", "cache.txt");
+
+                    status = 1;
+                }
+                else{
+                    fputs(anagrama_atual, temp);
+                    fputc(' ', temp);
+                }
+                c = fgetc(cache);
+            }
+        }
+    }
+    fclose(cache);
+    fclose(temp);
+
+    if(status == 0 || status == 1) revela_resposta(resposta, i, temp_palavra);
+
+    return status;
+}
+
+void removeTodos(char *linha, const char *para_remover){
+    int i, j, tamanho_linha, tamanho_para_remover;
+    bool encontrado;
+
+    tamanho_linha = strlen(linha);
+    tamanho_para_remover = strlen(para_remover);
+
+    for(i = 0; i <= tamanho_linha - tamanho_para_remover; i++){
+        encontrado = true;
+        for(j=0; j < tamanho_para_remover; j++){
+            if(linha[i + j] != para_remover[j]){
+                encontrado = false;
+                break;
+            }
+        }
+
+        if(linha[i + j] != ' ' && linha[i + j] != '\0'){
+            encontrado = false;
+        }
+
+        if(encontrado == true){
+            for(j=i; j <= tamanho_linha - tamanho_para_remover; j++){
+                linha[j] = linha[j + tamanho_para_remover];
+            }
+            tamanho_linha = tamanho_linha - tamanho_para_remover;
+            i--;
+        }
+    }
+}
+
+void revela_resposta(char resposta[TAM_MAX], int posicao, char *palavra){
+    FILE *lista_x, *temp;
+    int i, tamanho_alvo;
+    char c, alvo_x[TAM_MAX];
+
+    if((lista_x = fopen("lista_x.txt", "r")) == NULL){
+            printf("Nao foi possivel abrir o lista_x.\n");
+            exit(1);
+    }
+
+    if((temp = fopen("revela_lista_x.tmp", "w")) == NULL){
+            printf("Nao foi possivel criar o revela_lista_x.\n");
+            exit(1);
+    }
+
+    if(posicao == 0){
+        fprintf(temp, "%s", resposta);
+        fgets(alvo_x, strlen(palavra), lista_x);
+        c = fgetc(lista_x);
+        while(c != EOF){
+            c = fgetc(lista_x);
+            fputc(c, temp);
         }
     }
 
-    c = fgetc(anagramas);
+    else{
+        for(i=0; i<posicao-1; i++){
+            c = fgetc(lista_x);
+            while(c != ' '){
+                fputc(c, temp);
+                c = fgetc(lista_x);
+            }
+            fputc(c, temp);
+        }
+        fprintf(temp, "%s", resposta);
+        fscanf(lista_x, "%s", alvo_x);
 
-    while(c != '\n'){
-        fseek(anagramas, -1L, SEEK_CUR);
-        fscanf(anagramas, "%s", &anagrama_atual);
-        if(strcmp(palavra, resposta) == 0) return 2;
-        if(strcmp(anagrama_atual, resposta) == 0) return 0;
-        c = fgetc(anagramas);
+        c = fgetc(lista_x);
+        while(c != EOF){
+            fputc(c, temp);
+            c = fgetc(lista_x);
+        }
+
     }
-    return 1;
+
+    fclose(lista_x);
+    fclose(temp);
+
+    remove("lista_x.txt");
+    rename("revela_lista_x.tmp", "lista_x.txt");
+}
+
+int contador(){
+    char c;
+    int i, contador = 1;
+    FILE *cache;
+
+    if((cache = fopen("cache.txt", "r")) == NULL){
+            printf("Nao foi possivel abrir o cache.\n");
+            exit(1);
+    }
+
+    c = fgetc(cache);
+    for(i=0; c != EOF; i++){
+        if(c == ' ') contador++;
+        c = fgetc(cache);
+    }
+    fclose(cache);
+    return contador;
 }
 
 void tempo(int segundos){
@@ -241,6 +415,5 @@ void tempo(int segundos){
 
     clock_t inicio = clock();
 
-    while (clock() < inicio + ms)
-        ;
+    while (clock() < inicio + ms);
 }
