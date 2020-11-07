@@ -19,7 +19,6 @@
     #endif
 
 int gPontuacao;
-int sistema;
 
 void cache_linha(int linha);
 
@@ -34,8 +33,6 @@ int randomiza_palavra_nova(char *palavra, int i, int *linha_atual);
 void embaralha_palavra(char *palavra, char *palavra_embaralhada);
 
 int validar_resposta(char *palavra, char resposta[TAM_MAX], int linha_dicionario);
-
-void removeTodos(char *linha, const char *para_remover);
 
 void revela_resposta(char resposta[TAM_MAX], int posicao, char *palavra);
 
@@ -307,36 +304,6 @@ int validar_resposta(char *palavra, char resposta[TAM_MAX], int linha_dicionario
     if(status == 0 || status == 1) revela_resposta(resposta, i, temp_palavra);
 
     return status;
-}
-
-void removeTodos(char *linha, const char *para_remover){
-    int i, j, tamanho_linha, tamanho_para_remover;
-    bool encontrado;
-
-    tamanho_linha = strlen(linha);
-    tamanho_para_remover = strlen(para_remover);
-
-    for(i = 0; i <= tamanho_linha - tamanho_para_remover; i++){
-        encontrado = true;
-        for(j=0; j < tamanho_para_remover; j++){
-            if(linha[i + j] != para_remover[j]){
-                encontrado = false;
-                break;
-            }
-        }
-
-        if(linha[i + j] != ' ' && linha[i + j] != '\0'){
-            encontrado = false;
-        }
-
-        if(encontrado == true){
-            for(j=i; j <= tamanho_linha - tamanho_para_remover; j++){
-                linha[j] = linha[j + tamanho_para_remover];
-            }
-            tamanho_linha = tamanho_linha - tamanho_para_remover;
-            i--;
-        }
-    }
 }
 
 void revela_resposta(char resposta[TAM_MAX], int posicao, char *palavra){
