@@ -55,6 +55,7 @@ int main(){
     printf("Use as letras da palavra embaralhada para formar novas palavras\n");
     printf("As respostas validas restantes sao exibidas censuradas com 'X'\n");
     printf("Verbos so valem se estiverem no infinitivo.\n");
+    printf("Cada palavra vale sua quantidade de letras, exceto a principal, que vale 10 pontos.\n");
     printf("\nBoa jogatina!\n");
     printf("Pressione qualquer tecla para continuar");
     getchar();
